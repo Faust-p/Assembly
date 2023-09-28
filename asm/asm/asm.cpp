@@ -123,5 +123,56 @@
 //    return 0;
 //}
 
+#include <iostream>
+#include <array>
+
+using namespace std;
+
+int main() {
+    array<int, 10> nums = { 12, 53, -5, 10, 11, -7, 20, 32, -12, 15 };
+    array<int, 10> quotients;
+    array<int, 10> remainders;
+
+    __asm {
+            mov ecx, 0
+            for_loop:
+            mov eax, dword ptr nums[ecx * 4]
+            cdq
+            mov ebx, 3
+            idiv ebx
+            mov dword ptr quotients[ecx * 4], eax
+            mov dword ptr remainders[ecx * 4], edx
+
+            ; Check if remainder is negative
+            cmp edx, 0
+            jge remainder_end
+
+            ; If remainder is negative, add divisor to make it positive
+            add edx, ebx
+            dec eax
+            mov dword ptr quotients[ecx * 4], eax
+            mov dword ptr remainders[ecx * 4], edx
+
+            remainder_end :
+            inc ecx
+            cmp ecx, 10
+            jnge for_loop
+    }
+
+
+    cout << "Quotients: ";
+    for (int q : quotients) {
+        cout << q << " ";
+    }
+    cout << endl;
+
+    cout << "Remainders: ";
+    for (int r : remainders) {
+        cout << r << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
 
 
