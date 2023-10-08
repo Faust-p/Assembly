@@ -175,4 +175,64 @@ int main() {
     return 0;
 }
 
+org 7C00h
 
+start:
+cli ; Отключаем прерывания (чтобы избежать внешних вмешательств)
+xor ax, ax ; Обнуляем регистр ax
+mov ds, ax ; Инициализируем dataSegment в ноль
+mov es, ax ; Инициализируем es в ноль
+mov ss, ax ; Инициализируем StackSegment в ноль
+mov sp, 07C00h ; Устанавливаем указатель стека на вершину стека
+sti ; Разрешаем прерывания
+
+; Устанавливаем видеорежим
+mov ax, 3
+int 10h
+mov ah, 2h
+mov dh, 0
+mov dl, 0
+xor bh, bh
+int 10h
+
+; Выводим имя
+mov ax, 1301h
+mov bp, fio
+mov cx, 32 ; Увеличьте этот параметр на 28, чтобы вместить всю строку имени
+mov bl, 02h
+int 10h
+
+; Перемещаем курсор в новую строку
+mov ah, 2h
+mov dl, 0
+inc dh
+int 10h
+
+; Выводим факультет
+mov ax, 1301h
+mov bp, faculty
+mov cx, 3
+mov bl, 02h
+int 10h
+
+; Перемещаем курсор в новую строку
+mov ah, 2h
+mov dl, 0
+inc dh
+int 10h
+
+; Выводим группу
+mov ax, 1301h
+mov bp, group
+mov cx, 3
+mov bl, 02h
+int 10h
+
+jmp $
+
+fio db 'Pavlenko Aleksandr Vladimirovich',0
+faculty db 'FMF',0
+group db '403',0
+
+times 510 - ($ - $$) db 0 ; Заполняем остаток сектора нулями
+db 0x55, 0xAA ; Сигнатура загрузочного сектора
