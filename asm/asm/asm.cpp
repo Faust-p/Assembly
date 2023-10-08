@@ -236,3 +236,75 @@ group db '403',0
 
 times 510 - ($ - $$) db 0 ; Заполняем остаток сектора нулями
 db 0x55, 0xAA ; Сигнатура загрузочного сектора
+
+
+
+
+lab 15
+
+
+org 0x7C00
+
+start:     
+; Отключаем прерывания
+cli 
+
+; Обнуляем регистры
+xor ax, ax ; Обнуляем регистр ax
+mov ds, ax ; Инициализируем dataSegment в ноль
+mov es, ax ; Инициализируем es в ноль
+mov ss, ax ; Инициализируем StackSegment в ноль
+mov sp, 0x7C00 ; Устанавливаем указатель стека на вершину стека
+
+; Разрешаем прерывания
+sti 
+
+; Задаем видеорежим
+mov ax, 3
+int 0x10
+mov ah, 2h
+mov dh, 0
+mov dl, 0
+xor bh, bh
+int 0x10
+
+; Вызываем подпрограмму printData, передаем параметры в регистрах
+mov ax, 0x1301
+mov bp, fio
+mov cx, 32
+mov bl, 0x2
+call printData
+
+mov ax, 0x1301
+mov bp, faculty
+mov cx, 3
+mov bl, 0x2
+call printData
+
+mov ax, 0x1301
+mov bp, group
+mov cx, 3
+mov bl, 0x2
+call printData
+
+jmp $
+
+printData:
+; Вызываем функцию BIOS для вывода текста
+int 0x10
+
+; Перемещаем курсор в новую строку
+mov ah, 2h
+mov dl, 0
+inc dh
+int 0x10
+
+ret ; Возвращаем управление вызывающей программе
+
+fio db 'Pavlenko Aleksandr Vladimirovich',0
+faculty db 'FMF',0
+group db '403',0
+
+times 510 - ($ - start) db 0 ; Заполняем остаток сектора нулями
+dw 0xAA55 ; Сигнатура загрузочного сектора
+
