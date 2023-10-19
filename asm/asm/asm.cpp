@@ -243,68 +243,96 @@ db 0x55, 0xAA ; Сигнатура загрузочного сектора
 lab 15
 
 
-org 0x7C00
+use16
+org 0x7c00
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
 
-start:     
-; Отключаем прерывания
-cli 
+boot:
+    mov ax, 0x2401
+    int 0x15
+    mov ax, 0x3
+    int 0x10
+    cli
+    lgdt [gdt_pointer]
+    mov eax, cr0
+    or eax, 0x1
+    mov cr0, eax
+    jmp dword CODE_SEG:boot2
 
-; Обнуляем регистры
-xor ax, ax ; Обнуляем регистр ax
-mov ds, ax ; Инициализируем dataSegment в ноль
-mov es, ax ; Инициализируем es в ноль
-mov ss, ax ; Инициализируем StackSegment в ноль
-mov sp, 0x7C00 ; Устанавливаем указатель стека на вершину стека
+gdt_start:
+    gdt_null:
+        dq 0x0
+    gdt_code:
+        dw 0xFFFF
+        dw 0x0
+        db 0x0
+        db 10011010b
+        db 11001111b
+        db 0x0
+    gdt_data:
+        dw 0xFFFF
+        dw 0x0
+        db 0x0
+        db 10010010b
+        db 11001111b
+        db 0x0
+gdt_end:
+gdt_pointer:
+    dw gdt_end - gdt_start
+    dd gdt_start
 
-; Разрешаем прерывания
-sti 
+use32
+boot2:
+    mov ax, DATA_SEG
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
 
-; Задаем видеорежим
-mov ax, 3
-int 0x10
-mov ah, 2h
-mov dh, 0
-mov dl, 0
-xor bh, bh
-int 0x10
+    call printName
+    call printFaculty
+    call printGroup
 
-; Вызываем подпрограмму printData, передаем параметры в регистрах
-mov ax, 0x1301
-mov bp, fio
-mov cx, 32
-mov bl, 0x2
-call printData
+    cli
+    hlt
 
-mov ax, 0x1301
-mov bp, faculty
-mov cx, 3
-mov bl, 0x2
-call printData
+printName:
+    mov esi, name
+    mov ebx, 0xb8000
+    call printString
+    ret
 
-mov ax, 0x1301
-mov bp, group
-mov cx, 3
-mov bl, 0x2
-call printData
+printFaculty:
+    mov esi, faculty
+    mov ebx, 0xb8000 + 160 ; Ñëåäóþùàÿ ñòðîêà
+    call printString
+    ret
 
-jmp $
+printGroup:
+    mov esi, group
+    mov ebx, 0xb8000 + 320 ; Åùå ñëåäóþùàÿ ñòðîêà
+    call printString
+    ret
 
-printData:
-; Вызываем функцию BIOS для вывода текста
-int 0x10
+printString:
+    .loop:
+        lodsb
+        or al, al
+        jz .done
+        or eax, 0x0100
+        mov word [ebx], ax
+        add ebx, 2
+        jmp .loop
+    .done:
+    ret
 
-; Перемещаем курсор в новую строку
-mov ah, 2h
-mov dl, 0
-inc dh
-int 0x10
+name: db "Pavlenko Aleksandr Vladimirovich", 0
+faculty: db "FMF", 0
+group: db "403", 0
 
-ret ; Возвращаем управление вызывающей программе
+times 510 - ($-$$) db 0
+dw 0xaa55
 
-fio db 'Pavlenko Aleksandr Vladimirovich',0
-faculty db 'FMF',0
-group db '403',0
-
-times 510 - ($ - start) db 0 ; Заполняем остаток сектора нулями
-dw 0xAA55 ; Сигнатура загрузочного сектора
 
